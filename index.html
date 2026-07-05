@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt 智能寶庫</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Sans TC, Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        /* Custom scrollbar style for content box and pills */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Shake animation on click feedback */
+        @keyframes subtle-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        .bounce-effect {
+            animation: subtle-bounce 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-[#f4f6fa] min-h-screen text-gray-800 flex flex-col antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Top Toast Notification Area -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <div class="flex-grow max-w-7xl w-full mx-auto px-4 py-8 md:py-12">
+        
+        <!-- Header Title Banner -->
+        <header class="text-center mb-8 animate-fade-in">
+            <h1 class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight flex items-center justify-center gap-3">
+                <span>🚀</span> AI Prompt 智能寶庫
+            </h1>
+            <div class="mt-3 flex items-center justify-center">
+                <a href="https://docs.google.com/spreadsheets/d/1dZPodBP0z6eBG8FLzOZohINhKd7RUOirNPqu7T4Gr2U/edit?gid=2013526827#gid=2013526827" 
+                   target="_blank" 
+                   class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors bg-white px-3.5 py-1.5 rounded-full shadow-sm border border-gray-100">
+                    <span>📁</span> 開啟原始資料 Google Sheet
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Search Bar Section -->
+        <div class="max-w-xl mx-auto mb-8">
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </div>
+                <input type="text" id="search-input" 
+                       placeholder="搜尋提示詞名稱、內容或標籤..." 
+                       class="w-full pl-11 pr-11 py-3.5 bg-white border border-gray-200 rounded-full shadow-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-base">
+                <button id="clear-search" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                    <i data-lucide="x-circle" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Tags Category List -->
+        <div class="flex justify-center mb-10">
+            <div id="category-container" class="flex flex-wrap justify-center gap-2 max-w-4xl px-2 custom-scrollbar overflow-x-auto py-1">
+                <!-- Skeleton Loading Pills -->
+                <div class="h-8 w-16 bg-gray-200 animate-pulse rounded-full"></div>
+                <div class="h-8 w-24 bg-gray-200 animate-pulse rounded-full"></div>
+                <div class="h-8 w-20 bg-gray-200 animate-pulse rounded-full"></div>
+                <div class="h-8 w-24 bg-gray-200 animate-pulse rounded-full"></div>
+            </div>
+        </div>
+
+        <!-- Main Content Area Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 pb-4 mb-6 gap-4">
+            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2.5">
+                <span>🧠</span> AI 協思
+                <span id="prompt-count-badge" class="bg-gray-200/60 text-gray-600 text-xs font-bold px-2.5 py-0.5 rounded-full">0 項</span>
+            </h2>
+            <div class="flex items-center gap-2">
+                <!-- Add Custom Button -->
+                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 text-xs font-semibold bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-500"></i> 新增提示詞
+                </button>
+                <!-- Source Status Badge -->
+                <span id="data-status-badge" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                    讀取中...
+                </span>
+            </div>
+        </div>
+
+        <!-- Cards Container Grid -->
+        <div id="prompts-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Skeleton Cards on Load -->
+            <div class="bg-white rounded-2xl p-5 border-t-4 border-purple-300 shadow-sm animate-pulse space-y-4">
+                <div class="h-5 w-20 bg-gray-200 rounded"></div>
+                <div class="h-6 w-3/4 bg-gray-200 rounded"></div>
+                <div class="h-32 bg-gray-100 rounded"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+            </div>
+            <div class="bg-white rounded-2xl p-5 border-t-4 border-purple-300 shadow-sm animate-pulse space-y-4">
+                <div class="h-5 w-20 bg-gray-200 rounded"></div>
+                <div class="h-6 w-1/2 bg-gray-200 rounded"></div>
+                <div class="h-32 bg-gray-100 rounded"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+            </div>
+            <div class="bg-white rounded-2xl p-5 border-t-4 border-purple-300 shadow-sm animate-pulse space-y-4">
+                <div class="h-5 w-20 bg-gray-200 rounded"></div>
+                <div class="h-6 w-2/3 bg-gray-200 rounded"></div>
+                <div class="h-32 bg-gray-100 rounded"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+            </div>
+            <div class="bg-white rounded-2xl p-5 border-t-4 border-purple-300 shadow-sm animate-pulse space-y-4">
+                <div class="h-5 w-20 bg-gray-200 rounded"></div>
+                <div class="h-6 w-5/8 bg-gray-200 rounded"></div>
+                <div class="h-32 bg-gray-100 rounded"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+            </div>
+        </div>
+
+        <!-- No Results Empty State -->
+        <div id="empty-state" class="hidden text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 shadow-sm max-w-md mx-auto mt-8">
+            <div class="w-16 h-16 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="search" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">未找到符合條件的提示詞</h3>
+            <p class="text-sm text-gray-500 mt-1.5 px-4">請嘗試更換搜尋關鍵字，或點選其他分類分類！</p>
+            <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow hover:bg-blue-700 transition-colors">
+                重設篩選條件
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Interactive Prompt Workspace Modal -->
+    <div id="prompt-modal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <!-- Modal Header -->
+            <div class="p-6 border-b border-gray-100 flex justify-between items-start bg-slate-50">
+                <div>
+                    <span id="modal-badge" class="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-md">分類</span>
+                    <h3 id="modal-title" class="text-xl font-bold text-gray-900 mt-2">提示詞標題</h3>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-5">
+                <!-- Smart Placeholders Form (if variables detected) -->
+                <div id="placeholders-section" class="hidden">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <i data-lucide="sliders" class="w-3.5 h-3.5 text-blue-500"></i> 請填寫以下參數（將即時替換下方 Prompt）
+                    </h4>
+                    <div id="placeholders-inputs" class="grid grid-cols-1 gap-3.5 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                        <!-- Inputs generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Prompt Content Area -->
+                <div>
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span>📋 PROMPT 內容</span>
+                        <span id="modal-variables-status" class="text-blue-600 font-medium normal-case hidden">已動態替換</span>
+                    </h4>
+                    <div class="relative">
+                        <pre id="modal-prompt-display" class="bg-gray-900 text-gray-100 p-4 rounded-xl text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono min-h-[150px] max-h-[300px] custom-scrollbar"></pre>
+                        <!-- Copy Overlay Success -->
+                        <div id="modal-copy-overlay" class="absolute inset-0 bg-green-500/95 text-white flex flex-col items-center justify-center rounded-xl opacity-0 transition-opacity pointer-events-none">
+                            <i data-lucide="check-circle" class="w-12 h-12 mb-2"></i>
+                            <span class="font-bold text-lg">複製成功！</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal Footer -->
+            <div class="p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 bg-slate-50">
+                <button onclick="closeModal()" class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-sm">
+                    關閉視窗
+                </button>
+                <button id="modal-copy-btn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-200">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>複製完整 Prompt</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Custom Prompt Modal -->
+    <div id="add-modal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-scale-up">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-1.5">
+                    <i data-lucide="plus-circle" class="text-blue-500 w-5 h-5"></i>自訂新增 Prompt
+                </h3>
+                <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="add-prompt-form" onsubmit="handleAddNewPrompt(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">分類標籤</label>
+                    <input type="text" id="add-category" required placeholder="例如：內容創作、程式應用" 
+                           class="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">提示詞標題</label>
+                    <input type="text" id="add-title" required placeholder="請輸入標題" 
+                           class="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">提示詞內容</label>
+                    <textarea id="add-prompt" required rows="5" placeholder="填寫您最常用的 AI 指令。可用中括號標示變數如：[主題內容]" 
+                              class="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold">
+                        取消
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors text-sm font-semibold">
+                        確認新增
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer Area -->
+    <footer class="bg-white border-t border-gray-100 py-6 text-center text-xs text-gray-400 mt-auto">
+        <p>© 2026 AI Prompt 智能寶庫 · 免費、輕量、快速、好懂</p>
+    </footer>
+
+    <!-- Scripts Logic -->
+    <script>
+        // --- 1. CONFIGURATION & CONSTANTS ---
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1dZPodBP0z6eBG8FLzOZohINhKd7RUOirNPqu7T4Gr2U/export?format=csv&gid=2013526827";
+        
+        // Comprehensive Local Curated Mock Data matching screen exactly + additional helpful variations
+        const DEFAULT_PROMPTS = [
+            {
+                category: "內容創作",
+                title: "意義單詞",
+                prompt: "將文章的重點部分，尋找一個代表性英文字母，並使這些字母的首字組合成一個具有意義的單詞（如「VISION」）。"
+            },
+            {
+                category: "內容創作",
+                title: "品牌名稱",
+                prompt: "完成 ChatGPT 角色定義後，依據“品牌定義”與“產品介紹”發想5個產品名稱與標題（口號）。\n\n- 提示詞指令：描述品牌與產品，請列出 [產品數量] 個產品名稱與行銷標題建議。(*品牌定義*描述、*產品介紹*描述)\n- Prompt\n- 我推出一個 [品牌領域] 品牌，今年會銷售一款新型 [產品特色]..."
+            },
+            {
+                category: "筆記精煉",
+                title: "長篇文章",
+                prompt: "為這一篇長篇文章，進行以下四個步驟，每一個步驟都要提供給文章與標示出來：\n\n第1、請為這篇長文件生成一份簡短摘要。\n第2、請基於上一個摘要，不要遺漏任何專有名詞、數字或關鍵人物，重新生成一份摘要。\n第3、現在，請將摘要中每一句話都濃縮成更簡潔的表達，同時保留關鍵資訊。"
+            },
+            {
+                category: "筆記精煉",
+                title: "書籍精煉",
+                prompt: "請對 @[檔案名稱]\n啟動【終極煉金管線】，一次執行四步驟整合：\n\n第一步：全域架構導航 (Stage 01)\n執行 stage-1-navigator，對精煉稿進行深度掃描，產出知識地圖與反直覺預警。\n存檔：01_Map_[主題簡稱].md。\n\n第二步：價值 DNA 診斷 (Stage 02)\n[自訂診斷指標]"
+            },
+            {
+                category: "筆記精煉",
+                title: "提取練習",
+                prompt: "我剛讀完了關於 [填入具體段落標題] 的內容。現在請幫我進行深度研磨：\n\n1-底層邏輯拷問：針對這段內容的「運作原理」向我提問，測試我是否理解了「為什麼有效」，而非只是記住步驟。\n\n2-環境轉化：如果這段概念有複雜之處，請嘗試將其套用到 [應用場景] 進行實際演練。"
+            },
+            {
+                category: "內容創作",
+                title: "影片清理 (輕量校對)",
+                prompt: "你的角色是一位「逐字稿校對員」，不是編輯。\n\n任務：\n1-僅刪除口語填充詞、重複說法、明顯冗詞。\n2-不得改寫句型、不得改變原意、不得加入新解釋。\n\n規則：\n1-原句順序必須完全一致。\n2-若刪除任何詞語，需確保前後銜接流暢。"
+            },
+            {
+                category: "內容創作",
+                title: "影片清理 (結構化)",
+                prompt: "你的角色是一位「內容結構化整理員」，不是編輯、不是評論者。\n\n我會提供一段約 4000 字的影片文字內容，請你在完全保留原作者語意與立場的前提下，進行「保留語意的濃縮」，將內容壓縮至 約 [目標字數] 字。全文用繁體中文呈現。"
+            },
+            {
+                category: "程式應用",
+                title: "程式效能優化",
+                prompt: "請作為一名資深資深架構師，幫我檢視以下 [框架/語言] 的段落代碼，找出其潛在效能瓶頸，並重構出符合 Clean Code 原則的最佳實踐：\n\n[程式碼內容]"
+            },
+            {
+                category: "簡報表達",
+                title: "高管匯報大綱",
+                prompt: "請將以下專業分析報告，轉化為向高階主管（C-Level）報告的 [投影片張數] 頁簡報大綱。\n每頁投影片需包含：\n1. 核心標題（一句話說出重點）\n2. 關鍵數據與支持論點\n3. 具體建議或下一步行動\n\n[報告內容]"
+            }
+        ];
+
+        // --- 2. GLOBAL STATE ---
+        let originalPrompts = []; // Fetched/Local Loaded prompts
+        let activeCategory = "全部";
+        let searchQuery = "";
+        
+        // Active prompt modal state
+        let currentModalPromptText = "";
+        let parsedPlaceholders = [];
+
+        // --- 3. IN-MEMORY CSV PARSER (RFC 4180 standard) ---
+        function parseCSV(text) {
+            let lines = [];
+            let row = [""];
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i];
+                let next = text[i+1];
+                if (c === '"') {
+                    if (inQuotes && next === '"') {
+                        row[row.length - 1] += '"';
+                        i++; // Skip double doublequote
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (c === ',' && !inQuotes) {
+                    row.push('');
+                } else if ((c === '\r' || c === '\n') && !inQuotes) {
+                    if (c === '\r' && next === '\n') { i++; }
+                    lines.push(row);
+                    row = [""];
+                } else {
+                    row[row.length - 1] += c;
+                }
+            }
+            if (row.length > 1 || row[0] !== "") {
+                lines.push(row);
+            }
+            return lines;
+        }
+
+        // --- 4. DATA FETCHING FLOW ---
+        async function fetchGoogleSheetData() {
+            const badge = document.getElementById("data-status-badge");
+            try {
+                // Retry and Backoff settings
+                let response;
+                let success = false;
+                let retries = 3;
+                let delay = 1000;
+
+                while (retries > 0 && !success) {
+                    try {
+                        response = await fetch(SHEET_CSV_URL);
+                        if (response.ok) {
+                            success = true;
+                            break;
+                        }
+                    } catch (e) {
+                        retries--;
+                        if (retries === 0) throw e;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; // Exponential backoff
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error("無法連接到 Google 試算表");
+                }
+
+                const csvText = await response.text();
+                const rows = parseCSV(csvText);
+
+                if (rows.length < 2) {
+                    throw new Error("Google 試算表內無有效提示詞資料");
+                }
+
+                // Header auto-detection
+                const headers = rows[0].map(h => h.trim().toLowerCase());
+                
+                let catIdx = headers.findIndex(h => h.includes("分類") || h.includes("類別") || h.includes("tag") || h.includes("category") || h.includes("標籤"));
+                let titleIdx = headers.findIndex(h => h.includes("名稱") || h.includes("標題") || h.includes("title") || h.includes("名稱") || h.includes("提示詞"));
+                let promptIdx = headers.findIndex(h => h.includes("提示詞") || h.includes("內容") || h.includes("prompt") || h.includes("指令") || h.includes("說明"));
+
+                // Fallbacks if mapping fails
+                if (catIdx === -1) catIdx = 0;
+                if (titleIdx === -1) titleIdx = 1;
+                if (promptIdx === -1) promptIdx = 2;
+
+                const loadedPrompts = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const r = rows[i];
+                    // Skip empty rows
+                    if (r.length < 2 || !r[titleIdx] || !r[promptIdx]) continue;
+
+                    loadedPrompts.push({
+                        category: r[catIdx] ? r[catIdx].trim() : "未分類",
+                        title: r[titleIdx].trim(),
+                        prompt: r[promptIdx].trim()
+                    });
+                }
+
+                if (loadedPrompts.length === 0) {
+                    throw new Error("無法解析出任何有效提示詞");
+                }
+
+                originalPrompts = loadedPrompts;
+                
+                // Success Badge UI Update
+                badge.className = "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100";
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 實時連線正常`;
+                showToast("✅ 已成功串接並載入雲端提示詞！", "success");
+
+            } catch (err) {
+                console.warn("串接雲端資料失敗，自動切換至預設資料包。異常原因:", err.message);
+                originalPrompts = [...DEFAULT_PROMPTS];
+                
+                // Fallback Local Badge UI Update
+                badge.className = "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100";
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> 本地展示資料`;
+                showToast("💡 已載入精選預設提示詞庫！", "info");
+            }
+
+            renderCategoryPills();
+            renderPrompts();
+        }
+
+        // --- 5. UI RENDERING LOGIC ---
+
+        // Draw Category Filters Buttons
+        function renderCategoryPills() {
+            const container = document.getElementById("category-container");
+            const categories = ["全部", ...new Set(originalPrompts.map(p => p.category))];
+            
+            container.innerHTML = "";
+            categories.forEach(cat => {
+                const isActive = cat === activeCategory;
+                const button = document.createElement("button");
+                button.className = isActive 
+                    ? "px-4 py-1.5 rounded-full text-sm font-medium border border-blue-600 bg-blue-600 text-white shadow-sm transition-all whitespace-nowrap"
+                    : "px-4 py-1.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all whitespace-nowrap shadow-sm";
+                button.textContent = cat;
+                button.onclick = () => {
+                    activeCategory = cat;
+                    renderCategoryPills();
+                    renderPrompts();
+                };
+                container.appendChild(button);
+            });
+        }
+
+        // Filter and Render Prompt Cards Grid
+        function renderPrompts() {
+            const grid = document.getElementById("prompts-grid");
+            const emptyState = document.getElementById("empty-state");
+            
+            // Filter Logic
+            const filtered = originalPrompts.filter(item => {
+                const matchesCat = activeCategory === "全部" || item.category === activeCategory;
+                const searchLower = searchQuery.toLowerCase();
+                const matchesSearch = item.title.toLowerCase().includes(searchLower) || 
+                                      item.prompt.toLowerCase().includes(searchLower) ||
+                                      item.category.toLowerCase().includes(searchLower);
+                return matchesCat && matchesSearch;
+            });
+
+            // Update badges counter
+            document.getElementById("prompt-count-badge").textContent = `${filtered.length} 項`;
+
+            if (filtered.length === 0) {
+                grid.classList.add("hidden");
+                emptyState.classList.remove("hidden");
+                return;
+            }
+
+            grid.classList.remove("hidden");
+            emptyState.classList.add("hidden");
+            grid.innerHTML = "";
+
+            // Dynamic color maps for borders to look visually premium
+            const borderColors = [
+                "border-t-4 border-indigo-500",
+                "border-t-4 border-purple-500",
+                "border-t-4 border-fuchsia-500",
+                "border-t-4 border-blue-500"
+            ];
+
+            filtered.forEach((item, index) => {
+                const card = document.createElement("div");
+                const borderStyle = borderColors[index % borderColors.length];
+                
+                card.className = `bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 relative border border-gray-100 flex flex-col justify-between hover:-translate-y-0.5 cursor-pointer ${borderStyle}`;
+                
+                // Allow card click to trigger WorkSpace Modal, excluding direct button copy clicking
+                card.onclick = (e) => {
+                    if (!e.target.closest(".copy-btn-action")) {
+                        openPromptModal(item);
+                    }
+                };
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-3.5">
+                            <span class="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-md">
+                                ${item.category}
+                            </span>
+                        </div>
+                        <h3 class="text-[17px] font-bold text-gray-900 mb-3.5 tracking-tight hover:text-blue-600 transition-colors line-clamp-1">
+                            ${item.title}
+                        </h3>
+                        <div class="bg-gray-50/70 rounded-xl p-3 border border-gray-100 text-sm text-gray-500 leading-relaxed h-44 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-all font-sans">
+                            ${escapeHtml(item.prompt)}
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-1">
+                        <button class="copy-btn-action w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98]">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                            <span>複製 Prompt</span>
+                        </button>
+                    </div>
+                `;
+
+                // Handle direct copy action in card list
+                const copyBtn = card.querySelector(".copy-btn-action");
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation(); // Avoid triggering card modal open
+                    const wasSuccessful = copyTextToClipboard(item.prompt);
+                    
+                    if (wasSuccessful) {
+                        const originalHTML = copyBtn.innerHTML;
+                        copyBtn.className = "copy-btn-action w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98]";
+                        copyBtn.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>已複製到剪貼簿！</span>`;
+                        lucide.createIcons();
+                        
+                        showToast(`📋 已成功複製《${item.title}》提示詞！`, "success");
+                        
+                        // Ripple effect feedback
+                        copyBtn.classList.add("bounce-effect");
+                        
+                        setTimeout(() => {
+                            copyBtn.className = "copy-btn-action w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98]";
+                            copyBtn.innerHTML = originalHTML;
+                            lucide.createIcons();
+                        }, 2000);
+                    } else {
+                        showToast("❌ 複製失敗，請手動複製欄位內容。", "error");
+                    }
+                };
+
+                grid.appendChild(card);
+            });
+
+            // Re-render Lucide icons in newly rendered elements
+            lucide.createIcons();
+        }
+
+        // --- 6. SMART MODAL VARIABLE REPLACER ---
+        
+        function openPromptModal(item) {
+            currentModalPromptText = item.prompt;
+            
+            const modal = document.getElementById("prompt-modal");
+            document.getElementById("modal-badge").textContent = item.category;
+            document.getElementById("modal-title").textContent = item.title;
+            
+            // Search for bracket placeholders like: [主題], [檔案], @[檔名], [數量]
+            const regex = /\[([^\]]+)\]/g;
+            let matches = [];
+            let match;
+            while ((match = regex.exec(item.prompt)) !== null) {
+                if (!matches.includes(match[1])) {
+                    matches.push(match[1]);
+                }
+            }
+
+            parsedPlaceholders = matches;
+            
+            const pSection = document.getElementById("placeholders-section");
+            const pInputs = document.getElementById("placeholders-inputs");
+            
+            if (parsedPlaceholders.length > 0) {
+                pSection.classList.remove("hidden");
+                pInputs.innerHTML = "";
+                
+                parsedPlaceholders.forEach(varName => {
+                    const fieldDiv = document.createElement("div");
+                    fieldDiv.innerHTML = `
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                            <span>🔹</span> 變數：${varName}
+                        </label>
+                        <input type="text" data-var="${varName}" placeholder="請輸入 ${varName} 的具體內容..." 
+                               class="modal-var-input w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all">
+                    `;
+                    pInputs.appendChild(fieldDiv);
+                });
+
+                // Attach dynamically input change listeners
+                const inputs = pInputs.querySelectorAll(".modal-var-input");
+                inputs.forEach(input => {
+                    input.addEventListener("input", updateModalPromptWithVariables);
+                });
+
+                document.getElementById("modal-variables-status").classList.remove("hidden");
+            } else {
+                pSection.classList.add("hidden");
+                document.getElementById("modal-variables-status").classList.add("hidden");
+            }
+
+            updateModalPromptWithVariables();
+            
+            // Show Modal
+            modal.classList.remove("hidden");
+            document.body.classList.add("overflow-hidden");
+
+            // Attach Modal copy action
+            const modalCopyBtn = document.getElementById("modal-copy-btn");
+            modalCopyBtn.onclick = () => {
+                const textToCopy = document.getElementById("modal-prompt-display").textContent;
+                const wasSuccessful = copyTextToClipboard(textToCopy);
+                if (wasSuccessful) {
+                    const overlay = document.getElementById("modal-copy-overlay");
+                    overlay.classList.add("opacity-100");
+                    showToast("🎉 完整提示詞複製成功！", "success");
+                    
+                    setTimeout(() => {
+                        overlay.classList.remove("opacity-100");
+                        closeModal();
+                    }, 1500);
+                } else {
+                    showToast("❌ 複製失敗，請選取框內文字手動複製。", "error");
+                }
+            };
+        }
+
+        // Live replace prompt template placeholders on typing
+        function updateModalPromptWithVariables() {
+            let renderedText = currentModalPromptText;
+            
+            if (parsedPlaceholders.length > 0) {
+                const inputs = document.querySelectorAll(".modal-var-input");
+                inputs.forEach(input => {
+                    const varName = input.getAttribute("data-var");
+                    const userValue = input.value.trim();
+                    if (userValue !== "") {
+                        // Replace instances of [varName] globally
+                        renderedText = renderedText.replaceAll(`[${varName}]`, userValue);
+                    }
+                });
+            }
+
+            document.getElementById("modal-prompt-display").textContent = renderedText;
+        }
+
+        function closeModal() {
+            document.getElementById("prompt-modal").classList.add("hidden");
+            document.body.classList.remove("overflow-hidden");
+        }
+
+        // --- 7. ADD CUSTOM PROMPTS ON THE FLY ---
+        function openAddModal() {
+            document.getElementById("add-modal").classList.remove("hidden");
+            document.body.classList.add("overflow-hidden");
+        }
+
+        function closeAddModal() {
+            document.getElementById("add-modal").classList.add("hidden");
+            document.body.classList.remove("overflow-hidden");
+            document.getElementById("add-prompt-form").reset();
+        }
+
+        function handleAddNewPrompt(event) {
+            event.preventDefault();
+            const category = document.getElementById("add-category").value.trim();
+            const title = document.getElementById("add-title").value.trim();
+            const prompt = document.getElementById("add-prompt").value.trim();
+
+            if (category && title && prompt) {
+                originalPrompts.unshift({ category, title, prompt });
+                renderCategoryPills();
+                renderPrompts();
+                closeAddModal();
+                showToast("✨ 新提示詞已加入庫存！", "success");
+            }
+        }
+
+        // Reset All searches and dynamic filters
+        function resetFilters() {
+            document.getElementById("search-input").value = "";
+            searchQuery = "";
+            activeCategory = "全部";
+            document.getElementById("clear-search").classList.add("hidden");
+            renderCategoryPills();
+            renderPrompts();
+        }
+
+        // --- 8. UTILITIES (Toast, Copy, Escaping) ---
+
+        // Custom Safe Toast Engine
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            
+            let bgClass = "bg-emerald-600 text-white";
+            let icon = "check-circle";
+            
+            if (type === "info") {
+                bgClass = "bg-blue-600 text-white";
+                icon = "info";
+            } else if (type === "error") {
+                bgClass = "bg-red-600 text-white";
+                icon = "alert-circle";
+            }
+
+            toast.className = `flex items-center gap-2.5 px-4.5 py-3 rounded-xl shadow-lg transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto ${bgClass}`;
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+                <span class="text-sm font-semibold">${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Trigger Animation transition
+            setTimeout(() => {
+                toast.classList.remove("translate-y-2", "opacity-0");
+            }, 10);
+
+            // Automatic dismissal
+            setTimeout(() => {
+                toast.classList.add("translate-y-2", "opacity-0");
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Iframe Compliant secure Copy Engine
+        function copyTextToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed'; 
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                const status = document.execCommand('copy');
+                return status;
+            } catch (err) {
+                console.error('Copy failure', err);
+                return false;
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // Avoid injections & markup breaks
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- 9. LIFECYCLE EVENT BINDINGS ---
+        window.onload = function() {
+            // Initiate lucide vectors
+            lucide.createIcons();
+
+            // Run initial fetch
+            fetchGoogleSheetData();
+
+            // Bind Search input behavior
+            const searchInput = document.getElementById("search-input");
+            const clearBtn = document.getElementById("clear-search");
+
+            searchInput.addEventListener("input", function(e) {
+                searchQuery = e.target.value;
+                if (searchQuery.trim() !== "") {
+                    clearBtn.classList.remove("hidden");
+                } else {
+                    clearBtn.classList.add("hidden");
+                }
+                renderPrompts();
+            });
+
+            clearBtn.addEventListener("click", function() {
+                searchInput.value = "";
+                searchQuery = "";
+                clearBtn.classList.add("hidden");
+                renderPrompts();
+            });
+        };
+    </script>
+</body>
+</html>
