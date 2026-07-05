@@ -253,8 +253,8 @@
                            class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">步驟 (H 欄對應值)</label>
-                    <input type="text" id="add-flow" placeholder="單項請留空。多步驟請填數字 1 ~ 4 或自訂流程步驟描述" 
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">步驟 (E 欄對應值)</label>
+                    <input type="text" id="add-flow" placeholder="單項請留空。多步驟請填數字 1 ~ 4" 
                            class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none">
                 </div>
                 <div>
@@ -284,61 +284,61 @@
         // --- 1. CONFIGURATION & CONSTANTS ---
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1dZPodBP0z6eBG8FLzOZohINhKd7RUOirNPqu7T4Gr2U/export?format=csv&gid=2013526827";
         
-        // Comprehensive Local Curated Mock Data with H-column (flow) values
+        // Comprehensive Local Curated Mock Data with E-column (flow) values
         const DEFAULT_PROMPTS = [
             {
                 category: "內容創作",
                 title: "意義單詞",
                 prompt: "將文章的重點部分，尋找一個代表性英文字母，並使 these 字母的首字組合成一個具有意義的單詞（如「VISION」）。",
-                flow: "" // Column H is Empty (Single Prompt)
+                flow: "" // Column E is Empty (Single Prompt)
             },
             {
                 category: "內容創作",
                 title: "品牌名稱發想",
                 prompt: "完成 ChatGPT 角色定義後，依據“品牌定義”與“產品介紹”發想5個產品名稱與標題（口號）。\n\n- 提示詞指令：描述品牌與產品，請列出 [產品數量] 個產品名稱與行銷標題建議。(*品牌定義*描述、*產品介紹*描述)\n- Prompt\n- 我推出一個 [品牌領域] 品牌，今年會銷售一款新型 [產品特色]...",
-                flow: "1" // Column H contains "1"
+                flow: "1" // Column E contains "1"
             },
             {
                 category: "內容創作",
                 title: "品牌行銷文案撰寫",
                 prompt: "基於上一步產出的 [品牌名稱]，為其擬定社群媒體貼文與推廣計劃：\n\n- 目標客群: [受眾]\n- 貼文風格: 幽默生動\n- 包含行動呼籲 (CTA) 語句",
-                flow: "2" // Column H contains "2"
+                flow: "2" // Column E contains "2"
             },
             {
                 category: "筆記精煉",
                 title: "長篇文章一鍵初摘",
                 prompt: "為這一篇長篇文章，生成一份不超過 300 字的簡短摘要：\n\n[文章內容]",
-                flow: "1" // Column H contains "1"
+                flow: "1" // Column E contains "1"
             },
             {
                 category: "筆記精煉",
                 title: "摘要深度重構",
                 prompt: "基於上一步產出的初摘，不要遺漏任何專有名詞、數據 or 關鍵人物，重新生成一份條列式摘要。",
-                flow: "2" // Column H contains "2"
+                flow: "2" // Column E contains "2"
             },
             {
                 category: "筆記精煉",
                 title: "極簡文字精粹",
                 prompt: "現在，請將摘要中每一句話都濃縮成更簡潔的表達，同時保留關鍵資訊。",
-                flow: "3" // Column H contains "3"
+                flow: "3" // Column E contains "3"
             },
             {
                 category: "筆記精煉",
                 title: "終極煉金管線導航",
                 prompt: "請對 @[檔案名稱] 啟動【終極煉金管線】，深度掃描精煉稿，產出知識地圖與反直覺預警。存檔為：01_Map_[主題].md。",
-                flow: "4" // Column H contains "4"
+                flow: "4" // Column E contains "4"
             },
             {
                 category: "內容創作",
                 title: "影片清理 (輕量校對)",
                 prompt: "你的角色是一位「逐字稿校對員」，不是編輯。\n\n任務：\n1-僅刪除口語填充詞、重複說法、明顯冗詞。\n2-不得改寫句型、不得改變原意、不得加入新解釋。\n\n規則：\n1-原句順序必須完全一致。\n2-若刪除任何詞語，需確保前後銜接流暢。",
-                flow: "" // Column H is Empty (Single Prompt)
+                flow: "" // Column E is Empty (Single Prompt)
             },
             {
                 category: "內容創作",
                 title: "影片清理 (結構化)",
                 prompt: "你的角色是一位「內容結構化整理員」，不是編輯、不是評論者。\n\n我會提供一段約 4000 字的影片文字內容，請你在完全保留原作者語意與立場的前提下，進行「保留語意的濃縮」，將內容壓縮至 約 [目標字數] 字。全文用繁體中文呈現。",
-                flow: "" // Column H is Empty (Single Prompt)
+                flow: "" // Column E is Empty (Single Prompt)
             }
         ];
 
@@ -438,7 +438,8 @@
 
                 const headers = rows[headerRowIdx].map(h => h.trim().toLowerCase());
                 
-                // CRITICAL CORRECTION: Find exact Category (主任務) and completely skip "編號" or ID headers to avoid returning (001, 002)
+                // --- COLUMN INDEX DETECTION ---
+                // Category (Column B, index 1)
                 let catIdx = headers.findIndex(h => 
                     h.includes("主任務") || 
                     h.includes("任務") || 
@@ -446,48 +447,45 @@
                     h.includes("類別") || 
                     h.includes("tag") || 
                     h.includes("category") || 
-                    h.includes("標籤") || 
-                    h.includes("功能")
+                    h.includes("標籤")
                 );
                 
+                // Title (Column D, index 3)
                 let titleIdx = headers.findIndex(h => h.includes("名稱") || h.includes("標題") || h.includes("title") || h.includes("提示詞名稱"));
                 
-                let promptIdx = headers.findIndex(h => (h.includes("內容") || h.includes("prompt") || h.includes("指令") || h.includes("說明") || h === "提示詞") && !h.includes("名稱") && !h.includes("標題"));
-                if (promptIdx === -1) {
-                    promptIdx = headers.findIndex(h => h.includes("提示詞") && !h.includes("名稱") && !h.includes("標題"));
-                }
+                // Flow / Step (Column E, index 4 - Explicit user instruction)
+                let flowIdx = headers.findIndex(h => h === "步驟" || h.includes("步驟") || h.includes("flow") || h.includes("step"));
                 
-                let flowIdx = headers.findIndex(h => h.includes("步驟") || h.includes("流程") || h.includes("flow") || h.includes("step") || h.includes("順序") || h.includes("h欄") || h.includes("排序"));
+                // Prompt Content (Column F, index 5)
+                let promptIdx = headers.findIndex(h => (h.includes("內容") || h.includes("prompt") || h.includes("指令") || h.includes("說明") || h === "提示詞") && !h.includes("名稱") && !h.includes("標題") && !h.includes("步驟"));
 
-                // Secure fallbacks while actively avoiding ID-like columns for Category index
-                if (catIdx === -1) {
-                    catIdx = headers.findIndex((h, idx) => 
-                        idx > 0 && 
-                        !h.includes("時間") && 
-                        !h.includes("timestamp") && 
-                        !h.includes("編號") && 
-                        !h.includes("id") && 
-                        !h.includes("no") && 
-                        !h.includes("提示詞") && 
-                        !h.includes("內容")
-                    );
-                    if (catIdx === -1) catIdx = 2; // Default to Column C (index 2) which is usually "主任務" in the template
-                }
-                if (titleIdx === -1) titleIdx = 3; // Column D (index 3)
-                if (promptIdx === -1) promptIdx = 4; // Column E (index 4)
-                if (flowIdx === -1) flowIdx = 7; // Column H (index 7)
+                // Secure fallback mapping based on exact user specification (Col E = index 4, Col F = index 5)
+                if (catIdx === -1) catIdx = 1;      // Column B ("主任務")
+                if (titleIdx === -1) titleIdx = 3;  // Column D ("提示詞名稱")
+                if (flowIdx === -1) flowIdx = 4;    // Column E ("步驟")
+                if (promptIdx === -1) promptIdx = 5; // Column F ("提示詞內容")
 
                 const loadedPrompts = [];
                 for (let i = headerRowIdx + 1; i < rows.length; i++) {
                     const r = rows[i];
-                    if (!r || r.length <= Math.max(titleIdx, promptIdx)) continue;
+                    if (!r || r.length <= Math.max(titleIdx, promptIdx, flowIdx)) continue;
                     if (!r[titleIdx] || r[titleIdx].trim() === "" || !r[promptIdx] || r[promptIdx].trim() === "") continue;
+
+                    // Parse flow value strictly from the matched flowIdx (Column E)
+                    let stepVal = r[flowIdx] ? r[flowIdx].trim() : "";
+                    
+                    // Filter out non-step values (like ID/No `001`, `014` if they leak, though Col E shouldn't have them)
+                    // We only accept valid steps. If the value is a number like 1, 2, 3, 4, keep it.
+                    // If it contains empty or blank spaces, set it to ""
+                    if (stepVal === "" || stepVal === "0" || stepVal.toLowerCase() === "null") {
+                        stepVal = "";
+                    }
 
                     loadedPrompts.push({
                         category: r[catIdx] ? r[catIdx].trim() : "未分類",
                         title: r[titleIdx].trim(),
                         prompt: r[promptIdx].trim(),
-                        flow: r[flowIdx] ? r[flowIdx].trim() : "" // Parse H-Column
+                        flow: stepVal
                     });
                 }
 
@@ -547,7 +545,7 @@
 
         // Dynamic visual generator for Step sequence in card block
         function renderStepProgress(flowValue) {
-            if (!flowValue) {
+            if (!flowValue || flowValue.trim() === "") {
                 return `
                     <div class="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500 font-semibold bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1 w-fit">
                         <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
@@ -556,9 +554,10 @@
                 `;
             }
 
+            // Extract pure numbers only
             const num = parseInt(flowValue.replace(/[^0-9]/g, ''));
             
-            // If H column is a string step (like "步驟A") rather than simple "1,2,3,4" index
+            // If E-column contains non-numeric strings but is not blank
             if (isNaN(num)) {
                 return `
                     <div class="mt-2.5 flex items-center gap-1.5 text-xs text-amber-700 font-bold bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1 w-fit">
@@ -636,11 +635,12 @@
                                       item.category.toLowerCase().includes(searchLower) ||
                                       (item.flow && item.flow.toLowerCase().includes(searchLower));
 
+                // Classification rule based on Column E (flow)
                 let matchesFlow = true;
                 if (flowFilter === 'steps') {
-                    matchesFlow = item.flow !== ""; // Must have a step
+                    matchesFlow = item.flow !== ""; // Multiple steps (E contains step number)
                 } else if (flowFilter === 'single') {
-                    matchesFlow = item.flow === ""; // Must be empty
+                    matchesFlow = item.flow === ""; // Single prompt (E is blank)
                 }
 
                 return matchesCat && matchesSearch && matchesFlow;
@@ -678,7 +678,7 @@
                     }
                 };
 
-                // Formatted render containing step indicator & trimmed prompt without leading spaces
+                // Formatted card view with correctly parsed flow steps from column E
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center justify-between gap-2 mb-3">
@@ -699,7 +699,7 @@
                             ${item.title}
                         </h3>
                         
-                        <!-- Visual flow timeline component -->
+                        <!-- Timeline flow chart -->
                         ${renderStepProgress(item.flow)}
 
                         <div class="bg-slate-50/70 rounded-xl p-4 border border-slate-100 text-[15px] text-slate-600 leading-relaxed h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-all font-sans mt-3">${escapeHtml(item.prompt)}</div>
