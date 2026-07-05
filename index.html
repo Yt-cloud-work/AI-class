@@ -289,7 +289,7 @@
             {
                 category: "內容創作",
                 title: "意義單詞",
-                prompt: "將文章的重點部分，尋找一個代表性英文字母，並使這些字母的首字組合成一個具有意義的單詞（如「VISION」）。",
+                prompt: "將文章的重點部分，尋找一個代表性英文字母，並使 these 字母的首字組合成一個具有意義的單詞（如「VISION」）。",
                 flow: "" // Column H is Empty (Single Prompt)
             },
             {
@@ -438,19 +438,44 @@
 
                 const headers = rows[headerRowIdx].map(h => h.trim().toLowerCase());
                 
-                let catIdx = headers.findIndex(h => h.includes("分類") || h.includes("類別") || h.includes("tag") || h.includes("category") || h.includes("標籤"));
+                // CRITICAL CORRECTION: Find exact Category (主任務) and completely skip "編號" or ID headers to avoid returning (001, 002)
+                let catIdx = headers.findIndex(h => 
+                    h.includes("主任務") || 
+                    h.includes("任務") || 
+                    h.includes("分類") || 
+                    h.includes("類別") || 
+                    h.includes("tag") || 
+                    h.includes("category") || 
+                    h.includes("標籤") || 
+                    h.includes("功能")
+                );
+                
                 let titleIdx = headers.findIndex(h => h.includes("名稱") || h.includes("標題") || h.includes("title") || h.includes("提示詞名稱"));
+                
                 let promptIdx = headers.findIndex(h => (h.includes("內容") || h.includes("prompt") || h.includes("指令") || h.includes("說明") || h === "提示詞") && !h.includes("名稱") && !h.includes("標題"));
                 if (promptIdx === -1) {
                     promptIdx = headers.findIndex(h => h.includes("提示詞") && !h.includes("名稱") && !h.includes("標題"));
                 }
+                
                 let flowIdx = headers.findIndex(h => h.includes("步驟") || h.includes("流程") || h.includes("flow") || h.includes("step") || h.includes("順序") || h.includes("h欄") || h.includes("排序"));
 
-                // Safe mappings fallbacks
-                if (catIdx === -1) catIdx = 1; // Col B
-                if (titleIdx === -1) titleIdx = 3; // Col D
-                if (promptIdx === -1) promptIdx = 4; // Col E
-                if (flowIdx === -1) flowIdx = 7; // Col H
+                // Secure fallbacks while actively avoiding ID-like columns for Category index
+                if (catIdx === -1) {
+                    catIdx = headers.findIndex((h, idx) => 
+                        idx > 0 && 
+                        !h.includes("時間") && 
+                        !h.includes("timestamp") && 
+                        !h.includes("編號") && 
+                        !h.includes("id") && 
+                        !h.includes("no") && 
+                        !h.includes("提示詞") && 
+                        !h.includes("內容")
+                    );
+                    if (catIdx === -1) catIdx = 2; // Default to Column C (index 2) which is usually "主任務" in the template
+                }
+                if (titleIdx === -1) titleIdx = 3; // Column D (index 3)
+                if (promptIdx === -1) promptIdx = 4; // Column E (index 4)
+                if (flowIdx === -1) flowIdx = 7; // Column H (index 7)
 
                 const loadedPrompts = [];
                 for (let i = headerRowIdx + 1; i < rows.length; i++) {
