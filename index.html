@@ -543,60 +543,6 @@
             renderPrompts();
         }
 
-        // Dynamic visual generator for Step sequence in card block
-        function renderStepProgress(flowValue) {
-            if (!flowValue || flowValue.trim() === "") {
-                return `
-                    <div class="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500 font-semibold bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1 w-fit">
-                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                        單項提示詞 (無步驟)
-                    </div>
-                `;
-            }
-
-            // Extract pure numbers only
-            const num = parseInt(flowValue.replace(/[^0-9]/g, ''));
-            
-            // If E-column contains non-numeric strings but is not blank
-            if (isNaN(num)) {
-                return `
-                    <div class="mt-2.5 flex items-center gap-1.5 text-xs text-amber-700 font-bold bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1 w-fit">
-                        <i data-lucide="git-commit" class="w-3.5 h-3.5 text-amber-500 animate-pulse"></i>
-                        <span>步驟順序：${flowValue}</span>
-                    </div>
-                `;
-            }
-
-            // High aesthetic timeline renderer for 1, 2, 3, 4 steps
-            let stepsTimeline = '';
-            const maxSteps = 4;
-            for (let i = 1; i <= maxSteps; i++) {
-                const isActive = i <= num;
-                const isCurrent = i === num;
-                stepsTimeline += `
-                    <div class="flex items-center">
-                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-                            isCurrent ? 'bg-emerald-600 text-white shadow-md ring-4 ring-emerald-100 scale-110' :
-                            isActive ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'
-                        }">${i}</span>
-                        ${i < maxSteps ? `<span class="w-3 h-[2px] ${i < num ? 'bg-emerald-400' : 'bg-slate-200'}"></span>` : ''}
-                    </div>
-                `;
-            }
-
-            return `
-                <div class="mt-2.5 py-1 px-2.5 bg-emerald-50/50 border border-emerald-100/40 rounded-xl flex items-center justify-between gap-3 w-fit">
-                    <span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
-                        <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-600"></i>
-                        步驟 ${num} 核心
-                    </span>
-                    <div class="flex items-center">
-                        ${stepsTimeline}
-                    </div>
-                </div>
-            `;
-        }
-
         // Render Category pills
         function renderCategoryPills() {
             const container = document.getElementById("category-container");
@@ -698,9 +644,6 @@
                         <h3 class="text-lg font-bold text-slate-900 mb-2 tracking-tight hover:text-emerald-600 transition-colors line-clamp-1">
                             ${item.title}
                         </h3>
-                        
-                        <!-- Timeline flow chart -->
-                        ${renderStepProgress(item.flow)}
 
                         <div class="bg-slate-50/70 rounded-xl p-4 border border-slate-100 text-[15px] text-slate-600 leading-relaxed h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap select-all font-sans mt-3">${escapeHtml(item.prompt)}</div>
                     </div>
