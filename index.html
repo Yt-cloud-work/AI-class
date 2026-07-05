@@ -62,6 +62,23 @@
             </div>
         </header>
 
+        <!-- Dynamic Sharing Guide Alert Banner -->
+        <div id="sharing-guide-banner" class="hidden max-w-2xl mx-auto mb-10 bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm text-amber-800 flex items-start gap-3.5 shadow-sm">
+            <i data-lucide="alert-triangle" class="w-5.5 h-5.5 text-amber-500 flex-shrink-0 mt-0.5"></i>
+            <div>
+                <p class="font-bold text-base text-amber-900">💡 尚未成功同步您的 Google 試算表？</p>
+                <p class="text-xs text-amber-700 mt-1.5 leading-relaxed">
+                    目前由於 <b>Google 試算表存取權限設為「限制」</b>，導致瀏覽器被 CORS 阻擋。請按照下方極簡步驟開啟，網頁即可即時自動更新：
+                </p>
+                <ol class="list-decimal list-inside text-xs text-amber-700 mt-2.5 space-y-1.5 pl-1">
+                    <li>在瀏覽器開啟您的試算表，點擊右上角金黃色的 <b class="bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">👥 共用</b> 按鈕。</li>
+                    <li>將「一般存取權」從 <b>「限制」</b> 更改為 <b>「知道連結的任何人」</b>。</li>
+                    <li>權限級別保持預設的 <b>「檢視者」</b>，然後點擊「完成」。</li>
+                    <li>回到本網頁並<b>重新整理 (F5)</b>，您的實時修改（如：「測試文字喔」）便會瞬間同步載入！</li>
+                </ol>
+            </div>
+        </div>
+
         <!-- Search Bar Section -->
         <div class="max-w-2xl mx-auto mb-10">
             <div class="relative group">
@@ -296,7 +313,7 @@
             {
                 category: "筆記精煉",
                 title: "摘要深度重構",
-                prompt: "基於上一步產出的初摘，不要遺漏任何專有名詞、數據或關鍵人物，重新生成一份條列式摘要。",
+                prompt: "基於上一步產出的初摘，不要遺漏任何專有名詞、數據 or 關鍵人物，重新生成一份條列式摘要。",
                 flow: "2" // Column H contains "2"
             },
             {
@@ -368,6 +385,7 @@
         // --- 4. DATA FETCHING FLOW ---
         async function fetchGoogleSheetData() {
             const badge = document.getElementById("data-status-badge");
+            const guideBanner = document.getElementById("sharing-guide-banner");
             try {
                 let response;
                 let success = false;
@@ -390,33 +408,55 @@
                 }
 
                 if (!response || !response.ok) {
-                    throw new Error("無法連接到 Google 試算表");
+                    throw new Error("無法讀取 Google 試算表（存取權限受限或未發布）");
                 }
 
                 const csvText = await response.text();
+                // If Google redirects to a login page instead of actual CSV data, CSV parsing will get HTML
+                if (csvText.includes("<!DOCTYPE html>") || csvText.includes("<html")) {
+                    throw new Error("存取權限受限：收到 Google 登入網頁而非資料內容");
+                }
+
                 const rows = parseCSV(csvText);
 
                 if (rows.length < 2) {
                     throw new Error("試算表內無有效提示詞資料");
                 }
 
-                const headers = rows[0].map(h => h.trim().toLowerCase());
+                // Robust Header Row Finder
+                let headerRowIdx = -1;
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i] && rows[i].some(cell => cell.trim() !== "")) {
+                        headerRowIdx = i;
+                        break;
+                    }
+                }
+
+                if (headerRowIdx === -1) {
+                    throw new Error("試算表中找不到任何有效標頭行");
+                }
+
+                const headers = rows[headerRowIdx].map(h => h.trim().toLowerCase());
                 
                 let catIdx = headers.findIndex(h => h.includes("分類") || h.includes("類別") || h.includes("tag") || h.includes("category") || h.includes("標籤"));
                 let titleIdx = headers.findIndex(h => h.includes("名稱") || h.includes("標題") || h.includes("title") || h.includes("提示詞名稱"));
-                let promptIdx = headers.findIndex(h => h.includes("提示詞") || h.includes("內容") || h.includes("prompt") || h.includes("指令") || h.includes("說明"));
+                let promptIdx = headers.findIndex(h => (h.includes("內容") || h.includes("prompt") || h.includes("指令") || h.includes("說明") || h === "提示詞") && !h.includes("名稱") && !h.includes("標題"));
+                if (promptIdx === -1) {
+                    promptIdx = headers.findIndex(h => h.includes("提示詞") && !h.includes("名稱") && !h.includes("標題"));
+                }
                 let flowIdx = headers.findIndex(h => h.includes("步驟") || h.includes("流程") || h.includes("flow") || h.includes("step") || h.includes("順序") || h.includes("h欄") || h.includes("排序"));
 
-                // Safe mappings
+                // Safe mappings fallbacks
                 if (catIdx === -1) catIdx = 1; // Col B
-                if (titleIdx === -1) titleIdx = 3; // Col D (Often name/title)
+                if (titleIdx === -1) titleIdx = 3; // Col D
                 if (promptIdx === -1) promptIdx = 4; // Col E
-                if (flowIdx === -1) flowIdx = 7; // Col H (index 7)
+                if (flowIdx === -1) flowIdx = 7; // Col H
 
                 const loadedPrompts = [];
-                for (let i = 1; i < rows.length; i++) {
+                for (let i = headerRowIdx + 1; i < rows.length; i++) {
                     const r = rows[i];
-                    if (r.length < 2 || !r[titleIdx] || !r[promptIdx]) continue;
+                    if (!r || r.length <= Math.max(titleIdx, promptIdx)) continue;
+                    if (!r[titleIdx] || r[titleIdx].trim() === "" || !r[promptIdx] || r[promptIdx].trim() === "") continue;
 
                     loadedPrompts.push({
                         category: r[catIdx] ? r[catIdx].trim() : "未分類",
@@ -427,22 +467,28 @@
                 }
 
                 if (loadedPrompts.length === 0) {
-                    throw new Error("無法解析出任何有效提示詞");
+                    throw new Error("無法從試算表中解析出任何有效資料");
                 }
 
                 originalPrompts = loadedPrompts;
                 
+                // Hide dynamic error guide since fetch is successful
+                guideBanner.classList.add("hidden");
+
                 badge.className = "inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100";
                 badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> 雲端連線正常`;
-                showToast("✅ 已成功串接並載入雲端提示詞！", "success");
+                showToast("✅ 已成功串接並同步您的雲端試算表！", "success");
 
             } catch (err) {
-                console.warn("串接雲端資料失敗，自動切換至預設資料包。異常原因:", err.message);
+                console.warn("串接雲端資料失敗，自動切換至預設資料包。原因:", err.message);
                 originalPrompts = [...DEFAULT_PROMPTS];
                 
-                badge.className = "inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl bg-teal-50 text-teal-700 border border-teal-100";
-                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-teal-500"></span> 本地展示資料`;
-                showToast("💡 已載入精選預設提示詞庫！", "info");
+                // Show Dynamic Error and Actionable Guide Banner to user
+                guideBanner.classList.remove("hidden");
+
+                badge.className = "inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span> 本地展示資料 (雲端權限未開)`;
+                showToast("💡 已切換至內建提示詞，請確認雲端共用權限設定！", "info");
             }
 
             renderCategoryPills();
@@ -607,7 +653,7 @@
                     }
                 };
 
-                // Formatted render containing step indicator & trimmed prompt
+                // Formatted render containing step indicator & trimmed prompt without leading spaces
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center justify-between gap-2 mb-3">
